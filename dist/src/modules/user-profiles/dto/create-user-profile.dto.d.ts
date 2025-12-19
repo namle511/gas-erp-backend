@@ -1,0 +1,30 @@
+export declare class CreateUserProfileDto {
+    userId: number;
+    type?: number;
+    countryId?: number;
+    typeNation?: number;
+    typeReligion?: number;
+    typeEducation?: number;
+    idNumber?: string;
+    idProvince?: number;
+    idCreatedDate?: string;
+    statusMarital?: number;
+    dateBeginJob?: string;
+    contractType?: number;
+    contractBegin?: string;
+    contractEnd?: string;
+    positionWork?: number;
+    positionRoom?: number;
+    leaveDate?: string;
+    baseSalary?: number;
+    bankId?: number;
+    bankNo?: string;
+    bankBranch?: string;
+    bankProvinceId?: number;
+    socialInsuranceNo?: string;
+    taxNo?: string;
+    salaryMethod?: number;
+    addressHomeProvince?: number;
+    addressLiveProvince?: number;
+    json?: string;
+}

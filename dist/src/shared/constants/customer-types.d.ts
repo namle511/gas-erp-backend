@@ -1,0 +1,15 @@
+export declare const STORE_CARD_KH_BINH_BO = 1;
+export declare const STORE_CARD_KH_MOI = 2;
+export declare const STORE_CARD_XE_RAO = 6;
+export declare const CUSTOMER_HO_GIA_DINH = 3;
+export declare const STORE_CARD_VIP_HGD = 7;
+export declare const STORE_CARD_HGD = 8;
+export declare const STORE_CARD_HGD_CCS = 9;
+export declare const STORE_CARD_HGD_APP = 11;
+export declare const CUSTOMER_OTHER = 4;
+export declare const CUSTOMER_IS_AGENT = 5;
+export declare const CUSTOMER_IS_EMPLOYEE = 6;
+export declare const CUSTOMER_OTHER_OBJ = 0;
+export declare const HGD_TYPES: number[];
+export declare const BO_MOI_TYPES: number[];
+export declare const CUSTOMER_TYPE_LABELS: Record<number, string>;

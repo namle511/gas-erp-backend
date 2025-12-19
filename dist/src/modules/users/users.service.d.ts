@@ -1,0 +1,93 @@
+import { Repository } from 'typeorm';
+import { User, UserRole, Role } from '../../database/entities';
+import { UserProfile } from '../../database/entities/user-profile.entity';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+export declare class UsersService {
+    private readonly userRepository;
+    private readonly roleRepository;
+    private readonly profileRepository;
+    constructor(userRepository: Repository<User>, roleRepository: Repository<Role>, profileRepository: Repository<UserProfile>);
+    findAll(query?: {
+        roleId?: number;
+        status?: number;
+        provinceId?: number;
+        search?: string;
+        page?: number;
+        limit?: number;
+    }): Promise<{
+        data: {
+            roleName: string;
+            parentName: string | null;
+            dateBeginJob: Date;
+            leaveDate: Date;
+            createdByName: string | null;
+            id: number;
+            username: string;
+            email: string;
+            passwordHash: string;
+            tempPassword: string;
+            firstName: string;
+            lastName: string;
+            nameAgent: string;
+            codeAccount: string;
+            codeBusiness: string;
+            address: string;
+            addressVi: string;
+            houseNumbers: string;
+            provinceId: number;
+            channelId: number;
+            districtId: number;
+            wardId: number;
+            streetId: number;
+            storehouseId: number;
+            saleId: number;
+            paymentDay: number;
+            beginning: number;
+            firstChar: number;
+            loginAttempt: number;
+            createdDate: Date;
+            createdDateBigint: number;
+            lastLoggedIn: Date;
+            ipAddress: string;
+            roleId: number;
+            applicationId: number;
+            status: number;
+            gender: string;
+            phone: string;
+            verifyCode: string;
+            areaCodeId: number;
+            parentId: number;
+            slug: string;
+            isMaintain: number;
+            type: number;
+            addressTemp: string;
+            lastPurchase: Date;
+            createdBy: number;
+            price: string;
+            priceOther: number;
+            flagFixUpdate: number;
+            province: import("../../database/entities").Province;
+            district: import("../../database/entities").District;
+            ward: import("../../database/entities").Ward;
+            street: import("../../database/entities").Street;
+            profile: UserProfile;
+        }[];
+        meta: {
+            total: number;
+            page: number;
+            limit: number;
+            totalPages: number;
+        };
+    }>;
+    findOne(id: number): Promise<User>;
+    create(createUserDto: CreateUserDto, createdBy: number): Promise<User>;
+    update(id: number, updateUserDto: UpdateUserDto): Promise<User>;
+    remove(id: number): Promise<{
+        message: string;
+    }>;
+    getRoles(): Promise<{
+        id: UserRole;
+        name: string;
+    }[]>;
+}

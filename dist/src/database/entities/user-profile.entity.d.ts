@@ -1,0 +1,35 @@
+import { User } from './user.entity';
+export declare class UserProfile {
+    id: number;
+    userId: number;
+    user: User;
+    type: number;
+    parentId: number;
+    countryId: number;
+    typeNation: number;
+    typeReligion: number;
+    typeEducation: number;
+    idNumber: string;
+    idProvince: number;
+    idCreatedDate: Date;
+    statusMarital: number;
+    dateBeginJob: Date;
+    contractType: number;
+    contractBegin: Date;
+    contractEnd: Date;
+    positionWork: number;
+    positionRoom: number;
+    leaveDate: Date;
+    baseSalary: number;
+    bankId: number;
+    bankNo: string;
+    bankBranch: string;
+    socialInsuranceNo: string;
+    taxNo: string;
+    salaryMethod: number;
+    addressHomeProvince: number;
+    addressLiveProvince: number;
+    json: string;
+    updateBy: number;
+    updateTime: Date;
+}
