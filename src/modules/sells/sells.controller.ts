@@ -104,6 +104,11 @@ export class SellsController {
 
     // ==================== SINGLE ORDER ROUTES ====================
 
+    @Get('probe/schema')
+    probeSchema() {
+        return this.sellsService.probeSchema();
+    }
+
     @Get(':id')
     findOne(@Param('id', ParseIntPipe) id: number) {
         return this.sellsService.findOne(id);
@@ -171,4 +176,5 @@ export class SellsController {
     ) {
         return this.sellsService.completeOrder(id, req.user.userId, body);
     }
+
 }

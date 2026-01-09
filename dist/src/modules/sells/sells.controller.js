@@ -72,6 +72,9 @@ let SellsController = class SellsController {
     getCancelReasons() {
         return this.sellsService.getCancelReasons();
     }
+    probeSchema() {
+        return this.sellsService.probeSchema();
+    }
     findOne(id) {
         return this.sellsService.findOne(id);
     }
@@ -163,6 +166,12 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], SellsController.prototype, "getCancelReasons", null);
+__decorate([
+    (0, common_1.Get)('probe/schema'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], SellsController.prototype, "probeSchema", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),

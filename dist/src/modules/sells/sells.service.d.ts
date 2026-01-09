@@ -546,4 +546,5 @@ export declare class SellsService {
         value: number;
         label: string;
     }[];
+    probeSchema(): Promise<Record<string, string>>;
 }

@@ -786,6 +786,32 @@ let SellsService = class SellsService {
             { value: 20, label: 'Nhờ đại lý khác giao hỗ trợ' },
         ];
     }
+    async probeSchema() {
+        const columns = [
+            'action_type',
+            'created_date_only_bigint', 'created_date_bigint', 'complete_time_bigint',
+            'delivery_timer', 'is_timer',
+            'app_promotion_user_id', 'transaction_history_id',
+            'qty_discount', 'amount_discount',
+            'amount_bu_vo', 'v1_discount_id', 'v1_discount_amount',
+            'code_partner_id', 'promotion_extra_id', 'promotion_extra_amount',
+            'gas_remain', 'gas_remain_amount', 'kg_empty', 'kg_has_gas',
+            'support_id', 'call_id', 'high_price',
+            'status_cancel', 'order_type_status',
+            'platform', 'customer_new', 'refcode'
+        ];
+        const results = {};
+        for (const col of columns) {
+            try {
+                await this.sellRepository.query(`SELECT ${col} FROM gas_sell LIMIT 1`);
+                results[col] = 'OK';
+            }
+            catch (e) {
+                results[col] = 'MISSING';
+            }
+        }
+        return results;
+    }
 };
 exports.SellsService = SellsService;
 exports.SellsService = SellsService = __decorate([

@@ -189,6 +189,7 @@ export declare class SellsController {
         value: number;
         label: string;
     }[];
+    probeSchema(): Promise<Record<string, string>>;
     findOne(id: number): Promise<{
         statusLabel: string;
         orderTypeLabel: string;
