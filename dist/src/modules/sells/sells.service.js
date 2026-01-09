@@ -226,9 +226,7 @@ let SellsService = class SellsService {
             status: sell_entity_1.SellStatus.NEW,
             uidLogin: userId,
             createdDateOnly: dateOnly,
-            createdDateOnlyBigint: Math.floor(dateOnly.getTime() / 1000),
             createdDate: now,
-            createdDateBigint: Math.floor(now.getTime() / 1000),
             deliveryTimer: createSellDto.deliveryTimer ? new Date(createSellDto.deliveryTimer) : null,
             isTimer: createSellDto.deliveryTimer ? 1 : 0,
         });
@@ -256,7 +254,6 @@ let SellsService = class SellsService {
                     amountDiscount: detail.amountDiscount || 0,
                     promotionAmount: detail.promotionAmount || 0,
                     createdDateOnly: dateOnly,
-                    createdDateOnlyBigint: Math.floor(dateOnly.getTime() / 1000),
                 });
             });
             await this.sellDetailRepository.save(detailEntities);
@@ -299,7 +296,6 @@ let SellsService = class SellsService {
                     amountDiscount: detail.amountDiscount || 0,
                     promotionAmount: detail.promotionAmount || 0,
                     createdDateOnly: sell.createdDateOnly,
-                    createdDateOnlyBigint: sell.createdDateOnlyBigint,
                 });
             });
             await this.sellDetailRepository.save(detailEntities);
@@ -319,7 +315,6 @@ let SellsService = class SellsService {
         sell.lastUpdateTime = new Date();
         if (status === sell_entity_1.SellStatus.PAID) {
             sell.completeTime = new Date();
-            sell.completeTimeBigint = Math.floor(Date.now() / 1000);
         }
         if (status === sell_entity_1.SellStatus.CANCEL && statusCancel) {
             sell.statusCancel = statusCancel;
@@ -705,7 +700,6 @@ let SellsService = class SellsService {
         sell.statusCancel = statusCancel;
         sell.completeTime = new Date();
         sell.completeTime = new Date();
-        sell.completeTimeBigint = Math.floor(Date.now() / 1000);
         sell.lastUpdateBy = employeeId;
         sell.lastUpdateTime = new Date();
         await this.sellRepository.save(sell);
@@ -749,7 +743,6 @@ let SellsService = class SellsService {
                     amount,
                     seri: detail.seri || 0,
                     createdDateOnly: sell.createdDateOnly,
-                    createdDateOnlyBigint: sell.createdDateOnlyBigint,
                 });
             });
             await this.sellDetailRepository.save(detailEntities);
@@ -771,7 +764,6 @@ let SellsService = class SellsService {
         }
         sell.status = sell_entity_1.SellStatus.PAID;
         sell.completeTime = new Date();
-        sell.completeTimeBigint = Math.floor(Date.now() / 1000);
         sell.lastUpdateBy = employeeId;
         sell.lastUpdateTime = new Date();
         await this.sellRepository.save(sell);

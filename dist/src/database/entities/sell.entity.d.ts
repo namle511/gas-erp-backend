@@ -63,9 +63,7 @@ export declare class Sell {
     uidLogin: number;
     callCenterId: number;
     createdDateOnly: Date;
-    createdDateOnlyBigint: number;
     createdDate: Date;
-    createdDateBigint: number;
     note: string;
     lastUpdateBy: number;
     lastUpdateTime: Date;
@@ -86,7 +84,6 @@ export declare class Sell {
     callEndTime: number;
     highPrice: number;
     completeTime: Date;
-    completeTimeBigint: number;
     customerNew: number;
     platform: number;
     v1DiscountAmount: number;

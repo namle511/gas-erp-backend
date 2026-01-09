@@ -268,9 +268,9 @@ export class SellsService {
             status: SellStatus.NEW,
             uidLogin: userId,
             createdDateOnly: dateOnly,
-            createdDateOnlyBigint: Math.floor(dateOnly.getTime() / 1000),
+            // createdDateOnlyBigint: Math.floor(dateOnly.getTime() / 1000),
             createdDate: now,
-            createdDateBigint: Math.floor(now.getTime() / 1000),
+            // createdDateBigint: Math.floor(now.getTime() / 1000),
             deliveryTimer: createSellDto.deliveryTimer ? new Date(createSellDto.deliveryTimer) : null,
             isTimer: createSellDto.deliveryTimer ? 1 : 0,
         });
@@ -301,7 +301,7 @@ export class SellsService {
                     amountDiscount: detail.amountDiscount || 0,
                     promotionAmount: detail.promotionAmount || 0,
                     createdDateOnly: dateOnly,
-                    createdDateOnlyBigint: Math.floor(dateOnly.getTime() / 1000),
+                    // createdDateOnlyBigint: Math.floor(dateOnly.getTime() / 1000),
                 });
             });
 
@@ -355,7 +355,7 @@ export class SellsService {
                     amountDiscount: detail.amountDiscount || 0,
                     promotionAmount: detail.promotionAmount || 0,
                     createdDateOnly: sell.createdDateOnly,
-                    createdDateOnlyBigint: sell.createdDateOnlyBigint,
+                    // createdDateOnlyBigint: sell.createdDateOnlyBigint,
                 });
             });
 
@@ -382,7 +382,7 @@ export class SellsService {
 
         if (status === SellStatus.PAID) {
             sell.completeTime = new Date();
-            sell.completeTimeBigint = Math.floor(Date.now() / 1000);
+            // sell.completeTimeBigint = Math.floor(Date.now() / 1000);
         }
 
         if (status === SellStatus.CANCEL && statusCancel) {
@@ -930,7 +930,7 @@ export class SellsService {
         // sell.actionType = 3; // EMPLOYEE_DROP - Removed due to missing column
         sell.completeTime = new Date();
         sell.completeTime = new Date();
-        sell.completeTimeBigint = Math.floor(Date.now() / 1000);
+        // sell.completeTimeBigint = Math.floor(Date.now() / 1000);
         sell.lastUpdateBy = employeeId;
         sell.lastUpdateTime = new Date();
 
@@ -1008,7 +1008,7 @@ export class SellsService {
                     amount,
                     seri: detail.seri || 0,
                     createdDateOnly: sell.createdDateOnly,
-                    createdDateOnlyBigint: sell.createdDateOnlyBigint,
+                    // createdDateOnlyBigint: sell.createdDateOnlyBigint,
                 });
             });
 
@@ -1041,7 +1041,7 @@ export class SellsService {
         sell.status = SellStatus.PAID;
         // sell.actionType = 5; // EMPLOYEE_COMPLETE - Removed due to missing column
         sell.completeTime = new Date();
-        sell.completeTimeBigint = Math.floor(Date.now() / 1000);
+        // sell.completeTimeBigint = Math.floor(Date.now() / 1000);
         sell.lastUpdateBy = employeeId;
         sell.lastUpdateTime = new Date();
 

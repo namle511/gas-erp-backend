@@ -116,14 +116,14 @@ export class Sell {
     @Column({ type: 'date', name: 'created_date_only' })
     createdDateOnly: Date;
 
-    @Column({ type: 'bigint', unsigned: true, name: 'created_date_only_bigint', default: 0, comment: 'time in second' })
-    createdDateOnlyBigint: number;
+    // @Column({ type: 'bigint', unsigned: true, name: 'created_date_only_bigint', default: 0, comment: 'time in second' })
+    // createdDateOnlyBigint: number;
 
     @Column({ type: 'datetime', name: 'created_date', nullable: true })
     createdDate: Date;
 
-    @Column({ type: 'bigint', unsigned: true, name: 'created_date_bigint', default: 0 })
-    createdDateBigint: number;
+    // @Column({ type: 'bigint', unsigned: true, name: 'created_date_bigint', default: 0 })
+    // createdDateBigint: number;
 
     @Column({ type: 'text', nullable: true })
     note: string;
@@ -185,8 +185,8 @@ export class Sell {
     @Column({ type: 'datetime', name: 'complete_time', nullable: true })
     completeTime: Date;
 
-    @Column({ type: 'bigint', unsigned: true, name: 'complete_time_bigint', default: 0, comment: 'time in second' })
-    completeTimeBigint: number;
+    // @Column({ type: 'bigint', unsigned: true, name: 'complete_time_bigint', default: 0, comment: 'time in second' })
+    // completeTimeBigint: number;
 
     @Column({ type: 'tinyint', unsigned: true, name: 'customer_new', default: 0, comment: '1: KH new, 2: old' })
     customerNew: number;

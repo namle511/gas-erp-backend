@@ -24,7 +24,6 @@ export declare class SellDetail {
     amount: number;
     seri: number;
     createdDateOnly: Date;
-    createdDateOnlyBigint: number;
     qtyDiscount: number;
     amountDiscount: number;
     amountBuVo: number;

@@ -37,7 +37,6 @@ let SellDetail = class SellDetail {
     amount;
     seri;
     createdDateOnly;
-    createdDateOnlyBigint;
     qtyDiscount;
     amountDiscount;
     amountBuVo;
@@ -149,10 +148,6 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'date', name: 'created_date_only' }),
     __metadata("design:type", Date)
 ], SellDetail.prototype, "createdDateOnly", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'bigint', unsigned: true, name: 'created_date_only_bigint', default: 0, comment: 'time in second' }),
-    __metadata("design:type", Number)
-], SellDetail.prototype, "createdDateOnlyBigint", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'tinyint', unsigned: true, name: 'qty_discount', default: 0, comment: 'slg chiet khau, only Gas' }),
     __metadata("design:type", Number)

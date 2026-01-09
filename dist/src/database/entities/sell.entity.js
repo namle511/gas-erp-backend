@@ -80,9 +80,7 @@ let Sell = class Sell {
     uidLogin;
     callCenterId;
     createdDateOnly;
-    createdDateOnlyBigint;
     createdDate;
-    createdDateBigint;
     note;
     lastUpdateBy;
     lastUpdateTime;
@@ -103,7 +101,6 @@ let Sell = class Sell {
     callEndTime;
     highPrice;
     completeTime;
-    completeTimeBigint;
     customerNew;
     platform;
     v1DiscountAmount;
@@ -213,17 +210,9 @@ __decorate([
     __metadata("design:type", Date)
 ], Sell.prototype, "createdDateOnly", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'bigint', unsigned: true, name: 'created_date_only_bigint', default: 0, comment: 'time in second' }),
-    __metadata("design:type", Number)
-], Sell.prototype, "createdDateOnlyBigint", void 0);
-__decorate([
     (0, typeorm_1.Column)({ type: 'datetime', name: 'created_date', nullable: true }),
     __metadata("design:type", Date)
 ], Sell.prototype, "createdDate", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'bigint', unsigned: true, name: 'created_date_bigint', default: 0 }),
-    __metadata("design:type", Number)
-], Sell.prototype, "createdDateBigint", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'text', nullable: true }),
     __metadata("design:type", String)
@@ -304,10 +293,6 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'datetime', name: 'complete_time', nullable: true }),
     __metadata("design:type", Date)
 ], Sell.prototype, "completeTime", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'bigint', unsigned: true, name: 'complete_time_bigint', default: 0, comment: 'time in second' }),
-    __metadata("design:type", Number)
-], Sell.prototype, "completeTimeBigint", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'tinyint', unsigned: true, name: 'customer_new', default: 0, comment: '1: KH new, 2: old' }),
     __metadata("design:type", Number)

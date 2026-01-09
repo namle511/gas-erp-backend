@@ -73,8 +73,8 @@ export class SellDetail {
     @Column({ type: 'date', name: 'created_date_only' })
     createdDateOnly: Date;
 
-    @Column({ type: 'bigint', unsigned: true, name: 'created_date_only_bigint', default: 0, comment: 'time in second' })
-    createdDateOnlyBigint: number;
+    // @Column({ type: 'bigint', unsigned: true, name: 'created_date_only_bigint', default: 0, comment: 'time in second' })
+    // createdDateOnlyBigint: number;
 
     @Column({ type: 'tinyint', unsigned: true, name: 'qty_discount', default: 0, comment: 'slg chiet khau, only Gas' })
     qtyDiscount: number;
