@@ -587,37 +587,33 @@ let SellsService = class SellsService {
     async getMobileOrders(employeeId, agentId, query) {
         const { page = 1, limit = 20, tab = 'new' } = query;
         try {
-            let qb = this.sellRepository.createQueryBuilder('sell')
-                .leftJoinAndSelect('sell.customer', 'customer')
-                .leftJoinAndSelect('sell.details', 'details')
-                .leftJoinAndSelect('details.material', 'material');
+            const where = {
+                status: tab === 'cancelled' ? sell_entity_1.SellStatus.CANCEL :
+                    (tab === 'completed' ? sell_entity_1.SellStatus.PAID : sell_entity_1.SellStatus.NEW),
+            };
             if (agentId && agentId > 0) {
-                qb = qb.andWhere('sell.agentId = :agentId', { agentId });
+                where.agentId = agentId;
             }
-            switch (tab) {
-                case 'new':
-                    qb = qb.andWhere('sell.status = :status', { status: sell_entity_1.SellStatus.NEW });
-                    qb = qb.andWhere('(sell.employeeMaintainId = 0 OR sell.employeeMaintainId IS NULL)');
-                    break;
-                case 'my':
-                    qb = qb.andWhere('sell.status = :status', { status: sell_entity_1.SellStatus.NEW });
-                    qb = qb.andWhere('sell.employeeMaintainId = :employeeId', { employeeId });
-                    break;
-                case 'completed':
-                    qb = qb.andWhere('sell.status = :status', { status: sell_entity_1.SellStatus.PAID });
-                    qb = qb.andWhere('sell.employeeMaintainId = :employeeId', { employeeId });
-                    break;
-                case 'cancelled':
-                    qb = qb.andWhere('sell.status = :status', { status: sell_entity_1.SellStatus.CANCEL });
-                    break;
+            if (tab === 'new') {
             }
-            qb = qb.orderBy('sell.id', 'DESC')
-                .skip((page - 1) * limit)
-                .take(limit);
-            const [data, total] = await qb.getManyAndCount();
+            else if (tab === 'my' || tab === 'completed') {
+                where.employeeMaintainId = employeeId;
+            }
+            const [data, total] = await this.sellRepository.findAndCount({
+                where,
+                relations: ['customer'],
+                order: { id: 'DESC' },
+                skip: (page - 1) * limit,
+                take: limit,
+            });
+            let filteredData = data;
+            let filteredTotal = total;
+            if (tab === 'new') {
+                filteredData = data.filter(sell => !sell.employeeMaintainId || sell.employeeMaintainId === 0);
+            }
             const statusLabels = this.getStatusLabels();
             const orderTypeLabels = this.getOrderTypeLabels();
-            const mappedData = data.map(sell => ({
+            const mappedData = filteredData.map(sell => ({
                 id: sell.id,
                 codeNo: sell.codeNo,
                 customerName: sell.customer
@@ -634,30 +630,16 @@ let SellsService = class SellsService {
                 deliveryTimer: sell.deliveryTimer,
                 isTimer: sell.isTimer,
                 note: sell.note,
-                materialsSummary: sell.details && sell.details.length > 0
-                    ? sell.details.map(d => {
-                        const qty = Number(d.qty);
-                        const formattedQty = Number.isInteger(qty) ? qty.toString() : qty.toFixed(2);
-                        return `${d.material?.name || 'VT'} x${formattedQty}`;
-                    }).join(', ')
-                    : '',
-                details: sell.details?.map(d => ({
-                    id: d.id,
-                    materialId: d.materialsId,
-                    materialName: d.material?.name || '',
-                    materialTypeId: d.materialsTypeId,
-                    qty: d.qty,
-                    price: d.price,
-                    amount: d.amount,
-                })),
+                materialsSummary: '',
+                details: [],
             }));
             return {
                 data: mappedData,
                 meta: {
-                    total,
+                    total: filteredTotal,
                     page,
                     limit,
-                    totalPages: Math.ceil(total / limit),
+                    totalPages: Math.ceil(filteredTotal / limit),
                 },
             };
         }
