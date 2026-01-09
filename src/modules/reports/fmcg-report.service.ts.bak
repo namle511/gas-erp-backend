@@ -1,0 +1,288 @@
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, Between, In } from 'typeorm';
+
+/**
+ * FMCG Daily Report Service
+ * Tối ưu từ Yii1 getDataReportDailyFMCG
+ * 
+ * Cải tiến:
+ * 1. Gom nhiều queries thành ít queries với aggregate
+ * 2. Parallel execution với Promise.all
+ * 3. Cache materials list
+ */
+@Injectable()
+export class FmcgReportService {
+    constructor(
+        @InjectRepository('gas_app_order_c_detail_real')
+        private readonly appOrderDetailRepository: Repository<any>,
+        @InjectRepository('gas_sell_detail')
+        private readonly sellDetailRepository: Repository<any>,
+        @InjectRepository('gas_materials')
+        private readonly materialRepository: Repository<any>,
+        @InjectRepository('gas_one_many')
+        private readonly oneManyRepository: Repository<any>,
+    ) { }
+
+    /**
+     * Main report function - tối ưu từ getDataReportDailyFMCG
+     */
+    async getReportDailyFMCG(query: {
+        dateFrom: string;
+        dateTo: string;
+        monitoringId?: number;
+        saleId?: number;
+    }) {
+        const { dateFrom, dateTo, monitoringId, saleId } = query;
+
+        // === BƯỚC 1: Lấy dữ liệu cơ bản song song ===
+        const [
+            fmcgMaterials,
+            monitorEmployees,
+            targets,
+        ] = await Promise.all([
+            this.getFMCGMaterials(),
+            this.getMonitorEmployees(monitoringId),
+            this.getTargets(dateFrom),
+        ]);
+
+        const materialIds = fmcgMaterials.map(m => m.id);
+        const employeeIds = this.extractEmployeeIds(monitorEmployees);
+
+        if (employeeIds.length === 0) {
+            return { data: [], summary: {}, employees: [], materials: fmcgMaterials };
+        }
+
+        // === BƯỚC 2: Lấy sản lượng song song ===
+        const [
+            appOrderOutput,
+            sellOutput,
+        ] = await Promise.all([
+            this.getOutputFromAppOrder(dateFrom, dateTo, employeeIds, materialIds),
+            this.getOutputFromSell(dateFrom, dateTo, employeeIds, materialIds),
+        ]);
+
+        // === BƯỚC 3: Gộp dữ liệu ===
+        const result = this.mergeOutputData(
+            monitorEmployees,
+            targets,
+            appOrderOutput,
+            sellOutput,
+            fmcgMaterials,
+        );
+
+        return result;
+    }
+
+    /**
+     * Lấy danh sách vật tư FMCG (có thể cache)
+     * Tương đương: getModelMaterialsByType + getArrayConsumerGoods
+     */
+    private async getFMCGMaterials() {
+        // Material types: Hàng tiêu dùng + Nước
+        const fmcgTypeIds = [5, 6, 7]; // Consumer goods types + Water
+
+        return this.materialRepository
+            .createQueryBuilder('m')
+            .where('m.materials_type_id IN (:...types)', { types: fmcgTypeIds })
+            .andWhere('m.status = 1')
+            .select(['m.id', 'm.name', 'm.materials_type_id', 'm.exchange_materials_id', 'm.exchange_qty'])
+            .getMany();
+    }
+
+    /**
+     * Lấy cấu trúc monitor -> employees
+     * Tương đương: getArrayOneManyMonitorCcs
+     */
+    private async getMonitorEmployees(monitoringId?: number) {
+        const qb = this.oneManyRepository.createQueryBuilder('om')
+            .leftJoinAndSelect('om.many', 'employee')
+            .where('om.type IN (:...types)', {
+                types: [1, 2, 3, 4] // TYPE_MONITOR_CCS, TYPE_SUB_EMPLOYEE, etc.
+            })
+            .andWhere('employee.status = 1');
+
+        if (monitoringId) {
+            qb.andWhere('om.one_id = :monitoringId', { monitoringId });
+        }
+
+        return qb.getMany();
+    }
+
+    /**
+     * Lấy targets FMCG theo tháng
+     * Tương đương: getListUserTargetFMCG
+     */
+    private async getTargets(dateFrom: string) {
+        const date = new Date(dateFrom);
+        const month = date.getMonth() + 1;
+        const year = date.getFullYear();
+
+        return this.oneManyRepository
+            .createQueryBuilder('om')
+            .where('om.type = :type', { type: 8 }) // TYPE_TARGET_MONTHLY_FMCG
+            .andWhere('MONTH(om.date_apply) = :month', { month })
+            .andWhere('YEAR(om.date_apply) = :year', { year })
+            .select(['om.one_id', 'om.many_id', 'om.other_value'])
+            .getMany();
+    }
+
+    /**
+     * Lấy sản lượng từ AppOrder - 1 QUERY DUY NHẤT thay vì loop
+     * Tương đương: getOutputFMCGEmployeeFromAppOrder
+     */
+    private async getOutputFromAppOrder(
+        dateFrom: string,
+        dateTo: string,
+        employeeIds: number[],
+        materialIds: number[],
+    ) {
+        const dateFromTs = Math.floor(new Date(dateFrom).getTime() / 1000);
+        const dateToTs = Math.floor(new Date(dateTo).getTime() / 1000) + 86400;
+
+        return this.appOrderDetailRepository
+            .createQueryBuilder('d')
+            .innerJoin('d.order', 'o')
+            .leftJoin('o.customer', 'c')
+            .where('d.date_delivery_bigint >= :dateFrom', { dateFrom: dateFromTs })
+            .andWhere('d.date_delivery_bigint < :dateTo', { dateTo: dateToTs })
+            .andWhere('o.status = :status', { status: 5 }) // STATUS_COMPLETE
+            .andWhere('d.materials_id IN (:...mats)', { mats: materialIds })
+            .andWhere('d.price > 0')
+            .andWhere('d.discount_amount = 0')
+            .andWhere('(c.sale_id IN (:...emps) OR o.uid_login IN (:...emps))', { emps: employeeIds })
+            .select([
+                'COALESCE(c.sale_id, o.uid_login) as employeeId',
+                'd.materials_id as materialId',
+                'd.materials_type_id as materialTypeId',
+                'DATE(FROM_UNIXTIME(d.date_delivery_bigint)) as deliveryDate',
+                'SUM(d.qty) as qty',
+                'SUM(d.amount) as amount',
+            ])
+            .groupBy('employeeId, d.materials_id, d.materials_type_id, deliveryDate')
+            .getRawMany();
+    }
+
+    /**
+     * Lấy sản lượng từ Sell HGD - 1 QUERY DUY NHẤT
+     * Tương đương: getOutputFMCGEmployeeFromSell
+     */
+    private async getOutputFromSell(
+        dateFrom: string,
+        dateTo: string,
+        employeeIds: number[],
+        materialIds: number[],
+    ) {
+        return this.sellDetailRepository
+            .createQueryBuilder('d')
+            .innerJoin('d.sell', 's')
+            .leftJoin('s.customer', 'c')
+            .where('s.created_date_only >= :dateFrom', { dateFrom })
+            .andWhere('s.created_date_only <= :dateTo', { dateTo })
+            .andWhere('s.status = :status', { status: 2 }) // STATUS_PAID
+            .andWhere('d.materials_id IN (:...mats)', { mats: materialIds })
+            .andWhere('d.price > 0')
+            .andWhere('c.sale_id IN (:...emps)', { emps: employeeIds })
+            .select([
+                'c.sale_id as employeeId',
+                'd.materials_id as materialId',
+                's.created_date_only as deliveryDate',
+                'SUM(d.qty) as qty',
+                'SUM(d.amount) as amount',
+            ])
+            .groupBy('c.sale_id, d.materials_id, s.created_date_only')
+            .getRawMany();
+    }
+
+    /**
+     * Extract employee IDs từ monitor structure
+     */
+    private extractEmployeeIds(monitorEmployees: any[]): number[] {
+        const ids = new Set<number>();
+        monitorEmployees.forEach(m => {
+            ids.add(m.one_id);
+            ids.add(m.many_id);
+        });
+        return Array.from(ids);
+    }
+
+    /**
+     * Gộp dữ liệu output từ các nguồn
+     */
+    private mergeOutputData(
+        monitorEmployees: any[],
+        targets: any[],
+        appOrderOutput: any[],
+        sellOutput: any[],
+        materials: any[],
+    ) {
+        // Group by employee -> material
+        const employeeData: Record<number, Record<number, { qty: number; amount: number; target: number }>> = {};
+        const dailyData: Record<string, Record<number, Record<number, { qty: number; amount: number }>>> = {};
+
+        // Process targets
+        const targetMap: Record<string, number> = {};
+        targets.forEach(t => {
+            targetMap[`${t.one_id}-${t.many_id}`] = Number(t.other_value);
+        });
+
+        // Merge AppOrder output
+        appOrderOutput.forEach(row => {
+            const empId = row.employeeId;
+            const matId = row.materialId;
+            const date = row.deliveryDate;
+
+            if (!employeeData[empId]) employeeData[empId] = {};
+            if (!employeeData[empId][matId]) {
+                employeeData[empId][matId] = { qty: 0, amount: 0, target: targetMap[`${empId}-${matId}`] || 0 };
+            }
+            employeeData[empId][matId].qty += Number(row.qty);
+            employeeData[empId][matId].amount += Number(row.amount);
+
+            // Daily
+            if (!dailyData[date]) dailyData[date] = {};
+            if (!dailyData[date][empId]) dailyData[date][empId] = {};
+            if (!dailyData[date][empId][matId]) dailyData[date][empId][matId] = { qty: 0, amount: 0 };
+            dailyData[date][empId][matId].qty += Number(row.qty);
+            dailyData[date][empId][matId].amount += Number(row.amount);
+        });
+
+        // Merge Sell output
+        sellOutput.forEach(row => {
+            const empId = row.employeeId;
+            const matId = row.materialId;
+            const date = row.deliveryDate;
+
+            if (!employeeData[empId]) employeeData[empId] = {};
+            if (!employeeData[empId][matId]) {
+                employeeData[empId][matId] = { qty: 0, amount: 0, target: targetMap[`${empId}-${matId}`] || 0 };
+            }
+            employeeData[empId][matId].qty += Number(row.qty);
+            employeeData[empId][matId].amount += Number(row.amount);
+
+            // Daily
+            if (!dailyData[date]) dailyData[date] = {};
+            if (!dailyData[date][empId]) dailyData[date][empId] = {};
+            if (!dailyData[date][empId][matId]) dailyData[date][empId][matId] = { qty: 0, amount: 0 };
+            dailyData[date][empId][matId].qty += Number(row.qty);
+            dailyData[date][empId][matId].amount += Number(row.amount);
+        });
+
+        // Calculate summary
+        let totalQty = 0;
+        let totalAmount = 0;
+        Object.values(employeeData).forEach(emp => {
+            Object.values(emp).forEach(mat => {
+                totalQty += mat.qty;
+                totalAmount += mat.amount;
+            });
+        });
+
+        return {
+            employeeData,
+            dailyData,
+            materials,
+            summary: { totalQty, totalAmount },
+        };
+    }
+}

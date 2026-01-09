@@ -103,6 +103,7 @@ export declare class Sell {
     promotionExtraId: number;
     promotionExtraAmount: number;
     datePaid: number;
+    actionType: number;
     customer: User;
     agent: User;
     employeeMaintain: User;

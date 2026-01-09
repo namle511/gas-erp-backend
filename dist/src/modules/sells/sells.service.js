@@ -584,6 +584,222 @@ let SellsService = class SellsService {
             },
         };
     }
+    async getMobileOrders(employeeId, agentId, query) {
+        const { page = 1, limit = 20, tab = 'new' } = query;
+        const where = { agentId };
+        switch (tab) {
+            case 'new':
+                where.status = sell_entity_1.SellStatus.NEW;
+                where.employeeMaintainId = 0;
+                break;
+            case 'my':
+                where.status = sell_entity_1.SellStatus.NEW;
+                where.employeeMaintainId = employeeId;
+                break;
+            case 'completed':
+                where.status = sell_entity_1.SellStatus.PAID;
+                where.employeeMaintainId = employeeId;
+                break;
+            case 'cancelled':
+                where.status = sell_entity_1.SellStatus.CANCEL;
+                break;
+        }
+        const [data, total] = await this.sellRepository.findAndCount({
+            where,
+            relations: ['customer', 'details', 'details.material'],
+            order: { id: 'DESC' },
+            skip: (page - 1) * limit,
+            take: limit,
+        });
+        const statusLabels = this.getStatusLabels();
+        const orderTypeLabels = this.getOrderTypeLabels();
+        const mappedData = data.map(sell => ({
+            id: sell.id,
+            codeNo: sell.codeNo,
+            customerName: sell.customer
+                ? `${sell.customer.lastName || ''} ${sell.customer.firstName || ''}`.trim()
+                : '',
+            customerPhone: sell.phone?.toString() || sell.customer?.phone || '',
+            customerAddress: sell.address || sell.customer?.address || '',
+            status: sell.status,
+            statusLabel: statusLabels[sell.status] || '',
+            orderType: sell.orderType,
+            orderTypeLabel: orderTypeLabels[sell.orderType] || '',
+            grandTotal: sell.grandTotal,
+            createdDate: sell.createdDate,
+            deliveryTimer: sell.deliveryTimer,
+            isTimer: sell.isTimer,
+            note: sell.note,
+            materialsSummary: sell.details && sell.details.length > 0
+                ? sell.details.map(d => {
+                    const qty = Number(d.qty);
+                    const formattedQty = Number.isInteger(qty) ? qty.toString() : qty.toFixed(2);
+                    return `${d.material?.name || 'VT'} x${formattedQty}`;
+                }).join(', ')
+                : '',
+            details: sell.details?.map(d => ({
+                id: d.id,
+                materialId: d.materialsId,
+                materialName: d.material?.name || '',
+                materialTypeId: d.materialsTypeId,
+                qty: d.qty,
+                price: d.price,
+                amount: d.amount,
+            })),
+        }));
+        return {
+            data: mappedData,
+            meta: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
+    }
+    async pickOrder(orderId, employeeId) {
+        const sell = await this.sellRepository.findOne({ where: { id: orderId } });
+        if (!sell) {
+            throw new common_1.NotFoundException(`Đơn hàng #${orderId} không tồn tại`);
+        }
+        if (sell.status !== sell_entity_1.SellStatus.NEW) {
+            throw new Error('Đơn hàng này không thể nhận vì đã được xử lý');
+        }
+        if (sell.employeeMaintainId && sell.employeeMaintainId !== 0) {
+            throw new Error('Đơn hàng đã có nhân viên khác nhận');
+        }
+        sell.employeeMaintainId = employeeId;
+        sell.actionType = 1;
+        sell.lastUpdateBy = employeeId;
+        sell.lastUpdateTime = new Date();
+        await this.sellRepository.save(sell);
+        await this.sellDetailRepository.update({ sellId: orderId }, { employeeMaintainId: employeeId });
+        return { message: 'Đã nhận đơn hàng thành công', orderId };
+    }
+    async cancelPick(orderId, employeeId) {
+        const sell = await this.sellRepository.findOne({ where: { id: orderId } });
+        if (!sell) {
+            throw new common_1.NotFoundException(`Đơn hàng #${orderId} không tồn tại`);
+        }
+        if (sell.employeeMaintainId !== employeeId) {
+            throw new Error('Bạn không thể hủy nhận đơn hàng này vì không phải bạn nhận');
+        }
+        if (sell.status !== sell_entity_1.SellStatus.NEW) {
+            throw new Error('Không thể hủy nhận đơn hàng đã hoàn thành hoặc đã hủy');
+        }
+        sell.employeeMaintainId = 0;
+        sell.actionType = 0;
+        sell.lastUpdateBy = employeeId;
+        sell.lastUpdateTime = new Date();
+        await this.sellRepository.save(sell);
+        await this.sellDetailRepository.update({ sellId: orderId }, { employeeMaintainId: 0 });
+        return { message: 'Đã hủy nhận đơn hàng', orderId };
+    }
+    async dropOrder(orderId, employeeId, statusCancel) {
+        const sell = await this.sellRepository.findOne({ where: { id: orderId } });
+        if (!sell) {
+            throw new common_1.NotFoundException(`Đơn hàng #${orderId} không tồn tại`);
+        }
+        if (sell.employeeMaintainId !== employeeId) {
+            throw new Error('Bạn không thể hủy đơn hàng này vì không phải bạn nhận');
+        }
+        if (sell.status !== sell_entity_1.SellStatus.NEW) {
+            throw new Error('Đơn hàng này không thể hủy');
+        }
+        sell.status = sell_entity_1.SellStatus.CANCEL;
+        sell.statusCancel = statusCancel;
+        sell.actionType = 3;
+        sell.completeTime = new Date();
+        sell.completeTimeBigint = Math.floor(Date.now() / 1000);
+        sell.lastUpdateBy = employeeId;
+        sell.lastUpdateTime = new Date();
+        await this.sellRepository.save(sell);
+        return { message: 'Đã hủy đơn hàng', orderId };
+    }
+    async completeOrder(orderId, employeeId, data) {
+        const sell = await this.sellRepository.findOne({
+            where: { id: orderId },
+            relations: ['details'],
+        });
+        if (!sell) {
+            throw new common_1.NotFoundException(`Đơn hàng #${orderId} không tồn tại`);
+        }
+        if (sell.employeeMaintainId !== employeeId) {
+            throw new Error('Bạn không thể hoàn thành đơn hàng này vì không phải bạn nhận');
+        }
+        if (sell.status !== sell_entity_1.SellStatus.NEW) {
+            throw new Error('Đơn hàng này đã được xử lý');
+        }
+        if (data?.details && data.details.length > 0) {
+            await this.sellDetailRepository.delete({ sellId: orderId });
+            let total = 0;
+            const detailEntities = data.details.map(detail => {
+                const amount = detail.qty * detail.price;
+                total += amount;
+                return this.sellDetailRepository.create({
+                    sellId: orderId,
+                    customerId: sell.customerId,
+                    agentId: sell.agentId,
+                    saleId: sell.saleId || 0,
+                    employeeMaintainId: employeeId,
+                    uidLogin: sell.uidLogin,
+                    typeCustomer: sell.typeCustomer,
+                    orderType: sell.orderType,
+                    source: sell.source,
+                    materialsId: detail.materialsId,
+                    materialsTypeId: detail.materialsTypeId,
+                    qty: detail.qty,
+                    price: detail.price,
+                    priceRoot: detail.price,
+                    amount,
+                    seri: detail.seri || 0,
+                    createdDateOnly: sell.createdDateOnly,
+                    createdDateOnlyBigint: sell.createdDateOnlyBigint,
+                });
+            });
+            await this.sellDetailRepository.save(detailEntities);
+            sell.total = total;
+            sell.grandTotal = total - (sell.amountDiscount || 0) - (data.promotionAmount || sell.promotionAmount || 0);
+        }
+        if (data?.promotionAmount !== undefined) {
+            sell.promotionAmount = data.promotionAmount;
+            sell.grandTotal = (sell.total || 0) - (sell.amountDiscount || 0) - data.promotionAmount;
+        }
+        if (data?.ptttCode) {
+            sell.ptttCode = data.ptttCode;
+        }
+        if (data?.gasRemain !== undefined) {
+            sell.gasRemain = data.gasRemain;
+        }
+        if (data?.gasRemainAmount !== undefined) {
+            sell.gasRemainAmount = data.gasRemainAmount;
+        }
+        sell.status = sell_entity_1.SellStatus.PAID;
+        sell.actionType = 5;
+        sell.completeTime = new Date();
+        sell.completeTimeBigint = Math.floor(Date.now() / 1000);
+        sell.lastUpdateBy = employeeId;
+        sell.lastUpdateTime = new Date();
+        await this.sellRepository.save(sell);
+        return {
+            message: 'Đã hoàn thành đơn hàng',
+            orderId,
+            grandTotal: sell.grandTotal,
+        };
+    }
+    getCancelReasons() {
+        return [
+            { value: 6, label: 'Không bù vỏ' },
+            { value: 7, label: 'KH gọi 2 bên' },
+            { value: 2, label: 'Giá cao' },
+            { value: 9, label: 'Giao xa' },
+            { value: 10, label: 'KH đi có việc' },
+            { value: 11, label: 'KH còn gas' },
+            { value: 14, label: 'KH nợ tiền' },
+            { value: 16, label: 'Gọi khách không nghe máy' },
+            { value: 20, label: 'Nhờ đại lý khác giao hỗ trợ' },
+        ];
+    }
 };
 exports.SellsService = SellsService;
 exports.SellsService = SellsService = __decorate([

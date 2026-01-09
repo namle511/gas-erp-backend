@@ -45,6 +45,8 @@ exports.AppModule = AppModule = __decorate([
                     database: configService.get('DB_DATABASE', 'gas'),
                     autoLoadEntities: true,
                     synchronize: false,
+                    logging: configService.get('DB_LOGGING', 'true') === 'true',
+                    logger: 'advanced-console',
                 }),
                 inject: [config_1.ConfigService],
             }),

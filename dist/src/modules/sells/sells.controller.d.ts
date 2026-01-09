@@ -148,6 +148,7 @@ export declare class SellsController {
             promotionExtraId: number;
             promotionExtraAmount: number;
             datePaid: number;
+            actionType: number;
             customer: import("../../database/entities").User;
             agent: import("../../database/entities").User;
             employeeMaintain: import("../../database/entities").User;
@@ -230,6 +231,7 @@ export declare class SellsController {
         promotionExtraId: number;
         promotionExtraAmount: number;
         datePaid: number;
+        actionType: number;
         customer: import("../../database/entities").User;
         agent: import("../../database/entities").User;
         employeeMaintain: import("../../database/entities").User;
@@ -305,6 +307,7 @@ export declare class SellsController {
         promotionExtraId: number;
         promotionExtraAmount: number;
         datePaid: number;
+        actionType: number;
         customer: import("../../database/entities").User;
         agent: import("../../database/entities").User;
         employeeMaintain: import("../../database/entities").User;
@@ -380,6 +383,7 @@ export declare class SellsController {
         promotionExtraId: number;
         promotionExtraAmount: number;
         datePaid: number;
+        actionType: number;
         customer: import("../../database/entities").User;
         agent: import("../../database/entities").User;
         employeeMaintain: import("../../database/entities").User;
@@ -455,6 +459,7 @@ export declare class SellsController {
         promotionExtraId: number;
         promotionExtraAmount: number;
         datePaid: number;
+        actionType: number;
         customer: import("../../database/entities").User;
         agent: import("../../database/entities").User;
         employeeMaintain: import("../../database/entities").User;
@@ -465,4 +470,59 @@ export declare class SellsController {
     remove(id: number): Promise<{
         message: string;
     }>;
+    getMobileOrders(page?: string, limit?: string, tab?: 'new' | 'my' | 'completed' | 'cancelled', req?: any): Promise<{
+        data: {
+            id: number;
+            codeNo: string;
+            customerName: string;
+            customerPhone: string;
+            customerAddress: string;
+            status: number;
+            statusLabel: string;
+            orderType: number;
+            orderTypeLabel: string;
+            grandTotal: number;
+            createdDate: Date;
+            deliveryTimer: Date | null;
+            isTimer: number;
+            note: string;
+            materialsSummary: string;
+            details: {
+                id: number;
+                materialId: number;
+                materialName: string;
+                materialTypeId: number;
+                qty: number;
+                price: number;
+                amount: number;
+            }[];
+        }[];
+        meta: {
+            total: number;
+            page: number;
+            limit: number;
+            totalPages: number;
+        };
+    }>;
+    pickOrder(id: number, req: any): Promise<{
+        message: string;
+        orderId: number;
+    }>;
+    cancelPick(id: number, req: any): Promise<{
+        message: string;
+        orderId: number;
+    }>;
+    dropOrder(id: number, statusCancel: number, req: any): Promise<{
+        message: string;
+        orderId: number;
+    }>;
+    completeOrder(id: number, body: any, req: any): Promise<{
+        message: string;
+        orderId: number;
+        grandTotal: number;
+    }>;
+    getCancelReasons(): {
+        value: number;
+        label: string;
+    }[];
 }

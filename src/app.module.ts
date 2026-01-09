@@ -33,6 +33,8 @@ import { SellsModule } from './modules/sells/sells.module';
         database: configService.get('DB_DATABASE', 'gas'),
         autoLoadEntities: true,
         synchronize: false, // Không tự động sync vì dùng DB có sẵn
+        logging: configService.get('DB_LOGGING', 'true') === 'true', // Log SQL queries
+        logger: 'advanced-console', // Better formatting
       }),
       inject: [ConfigService],
     }),

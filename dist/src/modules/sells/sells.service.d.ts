@@ -98,6 +98,7 @@ export declare class SellsService {
             promotionExtraId: number;
             promotionExtraAmount: number;
             datePaid: number;
+            actionType: number;
             customer: import("../../database/entities").User;
             agent: import("../../database/entities").User;
             employeeMaintain: import("../../database/entities").User;
@@ -180,6 +181,7 @@ export declare class SellsService {
         promotionExtraId: number;
         promotionExtraAmount: number;
         datePaid: number;
+        actionType: number;
         customer: import("../../database/entities").User;
         agent: import("../../database/entities").User;
         employeeMaintain: import("../../database/entities").User;
@@ -255,6 +257,7 @@ export declare class SellsService {
         promotionExtraId: number;
         promotionExtraAmount: number;
         datePaid: number;
+        actionType: number;
         customer: import("../../database/entities").User;
         agent: import("../../database/entities").User;
         employeeMaintain: import("../../database/entities").User;
@@ -330,6 +333,7 @@ export declare class SellsService {
         promotionExtraId: number;
         promotionExtraAmount: number;
         datePaid: number;
+        actionType: number;
         customer: import("../../database/entities").User;
         agent: import("../../database/entities").User;
         employeeMaintain: import("../../database/entities").User;
@@ -405,6 +409,7 @@ export declare class SellsService {
         promotionExtraId: number;
         promotionExtraAmount: number;
         datePaid: number;
+        actionType: number;
         customer: import("../../database/entities").User;
         agent: import("../../database/entities").User;
         employeeMaintain: import("../../database/entities").User;
@@ -498,4 +503,75 @@ export declare class SellsService {
             status: number | null;
         };
     }>;
+    getMobileOrders(employeeId: number, agentId: number, query: {
+        page?: number;
+        limit?: number;
+        tab?: 'new' | 'my' | 'completed' | 'cancelled';
+    }): Promise<{
+        data: {
+            id: number;
+            codeNo: string;
+            customerName: string;
+            customerPhone: string;
+            customerAddress: string;
+            status: number;
+            statusLabel: string;
+            orderType: number;
+            orderTypeLabel: string;
+            grandTotal: number;
+            createdDate: Date;
+            deliveryTimer: Date | null;
+            isTimer: number;
+            note: string;
+            materialsSummary: string;
+            details: {
+                id: number;
+                materialId: number;
+                materialName: string;
+                materialTypeId: number;
+                qty: number;
+                price: number;
+                amount: number;
+            }[];
+        }[];
+        meta: {
+            total: number;
+            page: number;
+            limit: number;
+            totalPages: number;
+        };
+    }>;
+    pickOrder(orderId: number, employeeId: number): Promise<{
+        message: string;
+        orderId: number;
+    }>;
+    cancelPick(orderId: number, employeeId: number): Promise<{
+        message: string;
+        orderId: number;
+    }>;
+    dropOrder(orderId: number, employeeId: number, statusCancel: number): Promise<{
+        message: string;
+        orderId: number;
+    }>;
+    completeOrder(orderId: number, employeeId: number, data?: {
+        details?: Array<{
+            materialsId: number;
+            materialsTypeId: number;
+            qty: number;
+            price: number;
+            seri?: number;
+        }>;
+        promotionAmount?: number;
+        ptttCode?: string;
+        gasRemain?: number;
+        gasRemainAmount?: number;
+    }): Promise<{
+        message: string;
+        orderId: number;
+        grandTotal: number;
+    }>;
+    getCancelReasons(): {
+        value: number;
+        label: string;
+    }[];
 }

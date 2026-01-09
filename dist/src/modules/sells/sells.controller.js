@@ -75,6 +75,30 @@ let SellsController = class SellsController {
     remove(id) {
         return this.sellsService.remove(id);
     }
+    getMobileOrders(page, limit, tab, req) {
+        const employeeId = req.user.userId;
+        const agentId = req.user.agentId || req.user.areaCodeId || 0;
+        return this.sellsService.getMobileOrders(employeeId, agentId, {
+            page: page ? parseInt(page, 10) : 1,
+            limit: limit ? parseInt(limit, 10) : 20,
+            tab: tab || 'new',
+        });
+    }
+    pickOrder(id, req) {
+        return this.sellsService.pickOrder(id, req.user.userId);
+    }
+    cancelPick(id, req) {
+        return this.sellsService.cancelPick(id, req.user.userId);
+    }
+    dropOrder(id, statusCancel, req) {
+        return this.sellsService.dropOrder(id, req.user.userId, statusCancel);
+    }
+    completeOrder(id, body, req) {
+        return this.sellsService.completeOrder(id, req.user.userId, body);
+    }
+    getCancelReasons() {
+        return this.sellsService.getCancelReasons();
+    }
 };
 exports.SellsController = SellsController;
 __decorate([
@@ -164,6 +188,56 @@ __decorate([
     __metadata("design:paramtypes", [Number]),
     __metadata("design:returntype", void 0)
 ], SellsController.prototype, "remove", null);
+__decorate([
+    (0, common_1.Get)('mobile/orders'),
+    __param(0, (0, common_1.Query)('page')),
+    __param(1, (0, common_1.Query)('limit')),
+    __param(2, (0, common_1.Query)('tab')),
+    __param(3, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String, Object]),
+    __metadata("design:returntype", void 0)
+], SellsController.prototype, "getMobileOrders", null);
+__decorate([
+    (0, common_1.Post)(':id/pick'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", void 0)
+], SellsController.prototype, "pickOrder", null);
+__decorate([
+    (0, common_1.Post)(':id/cancel-pick'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", void 0)
+], SellsController.prototype, "cancelPick", null);
+__decorate([
+    (0, common_1.Post)(':id/drop'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)('statusCancel', common_1.ParseIntPipe)),
+    __param(2, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Number, Object]),
+    __metadata("design:returntype", void 0)
+], SellsController.prototype, "dropOrder", null);
+__decorate([
+    (0, common_1.Post)(':id/complete'),
+    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object, Object]),
+    __metadata("design:returntype", void 0)
+], SellsController.prototype, "completeOrder", null);
+__decorate([
+    (0, common_1.Get)('mobile/cancel-reasons'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], SellsController.prototype, "getCancelReasons", null);
 exports.SellsController = SellsController = __decorate([
     (0, common_1.Controller)('sells'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

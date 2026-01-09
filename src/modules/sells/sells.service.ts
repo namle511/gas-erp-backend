@@ -720,4 +720,350 @@ export class SellsService {
             },
         };
     }
+
+    // ==================== MOBILE ORDER METHODS ====================
+
+    /**
+     * Get orders for mobile employee (PVKH/Giao nhận)
+     * Tab 'new': Shows orders with actionType = 0 (not picked by anyone)
+     * Tab 'my': Shows orders picked by current employee
+     * Tab 'completed': Shows completed orders by current employee
+     * Tab 'cancelled': Shows cancelled orders
+     */
+    async getMobileOrders(
+        employeeId: number,
+        agentId: number,
+        query: {
+            page?: number;
+            limit?: number;
+            tab?: 'new' | 'my' | 'completed' | 'cancelled';
+        }
+    ) {
+        const { page = 1, limit = 20, tab = 'new' } = query;
+
+        const where: any = { agentId };
+
+        switch (tab) {
+            case 'new':
+                // Đơn mới chưa ai nhận (actionType = 0 hoặc employeeMaintainId = 0)
+                where.status = SellStatus.NEW;
+                where.employeeMaintainId = 0;
+                break;
+            case 'my':
+                // Đơn đã nhận bởi employee này, chưa hoàn thành
+                where.status = SellStatus.NEW;
+                where.employeeMaintainId = employeeId;
+                break;
+            case 'completed':
+                // Đơn đã hoàn thành bởi employee này
+                where.status = SellStatus.PAID;
+                where.employeeMaintainId = employeeId;
+                break;
+            case 'cancelled':
+                // Đơn đã hủy
+                where.status = SellStatus.CANCEL;
+                break;
+        }
+
+        const [data, total] = await this.sellRepository.findAndCount({
+            where,
+            relations: ['customer', 'details', 'details.material'],
+            order: { id: 'DESC' },
+            skip: (page - 1) * limit,
+            take: limit,
+        });
+
+        const statusLabels = this.getStatusLabels();
+        const orderTypeLabels = this.getOrderTypeLabels();
+
+        const mappedData = data.map(sell => ({
+            id: sell.id,
+            codeNo: sell.codeNo,
+            customerName: sell.customer
+                ? `${sell.customer.lastName || ''} ${sell.customer.firstName || ''}`.trim()
+                : '',
+            customerPhone: sell.phone?.toString() || sell.customer?.phone || '',
+            customerAddress: sell.address || sell.customer?.address || '',
+            status: sell.status,
+            statusLabel: statusLabels[sell.status] || '',
+            orderType: sell.orderType,
+            orderTypeLabel: orderTypeLabels[sell.orderType] || '',
+            grandTotal: sell.grandTotal,
+            createdDate: sell.createdDate,
+            deliveryTimer: sell.deliveryTimer,
+            isTimer: sell.isTimer,
+            note: sell.note,
+            materialsSummary: sell.details && sell.details.length > 0
+                ? sell.details.map(d => {
+                    const qty = Number(d.qty);
+                    const formattedQty = Number.isInteger(qty) ? qty.toString() : qty.toFixed(2);
+                    return `${d.material?.name || 'VT'} x${formattedQty}`;
+                }).join(', ')
+                : '',
+            details: sell.details?.map(d => ({
+                id: d.id,
+                materialId: d.materialsId,
+                materialName: d.material?.name || '',
+                materialTypeId: d.materialsTypeId,
+                qty: d.qty,
+                price: d.price,
+                amount: d.amount,
+            })),
+        }));
+
+        return {
+            data: mappedData,
+            meta: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
+    }
+
+    /**
+     * Employee picks an order (nhận đơn hàng)
+     * - Updates employeeMaintainId to current employee
+     * - Sets actionType = EMPLOYEE_NHAN_GIAO_HANG (1)
+     */
+    async pickOrder(orderId: number, employeeId: number) {
+        const sell = await this.sellRepository.findOne({ where: { id: orderId } });
+
+        if (!sell) {
+            throw new NotFoundException(`Đơn hàng #${orderId} không tồn tại`);
+        }
+
+        // Check if order can be picked
+        if (sell.status !== SellStatus.NEW) {
+            throw new Error('Đơn hàng này không thể nhận vì đã được xử lý');
+        }
+
+        if (sell.employeeMaintainId && sell.employeeMaintainId !== 0) {
+            throw new Error('Đơn hàng đã có nhân viên khác nhận');
+        }
+
+        // Update order
+        sell.employeeMaintainId = employeeId;
+        sell.actionType = 1; // EMPLOYEE_NHAN_GIAO_HANG
+        sell.lastUpdateBy = employeeId;
+        sell.lastUpdateTime = new Date();
+
+        await this.sellRepository.save(sell);
+
+        // Also update all details
+        await this.sellDetailRepository.update(
+            { sellId: orderId },
+            { employeeMaintainId: employeeId }
+        );
+
+        return { message: 'Đã nhận đơn hàng thành công', orderId };
+    }
+
+    /**
+     * Employee cancels picking an order (hủy nhận đơn)
+     * - Resets employeeMaintainId to 0
+     * - Sets actionType = EMPLOYEE_FREE (0)
+     */
+    async cancelPick(orderId: number, employeeId: number) {
+        const sell = await this.sellRepository.findOne({ where: { id: orderId } });
+
+        if (!sell) {
+            throw new NotFoundException(`Đơn hàng #${orderId} không tồn tại`);
+        }
+
+        // Check if employee is the one who picked
+        if (sell.employeeMaintainId !== employeeId) {
+            throw new Error('Bạn không thể hủy nhận đơn hàng này vì không phải bạn nhận');
+        }
+
+        // Check if order is still new (not completed/cancelled)
+        if (sell.status !== SellStatus.NEW) {
+            throw new Error('Không thể hủy nhận đơn hàng đã hoàn thành hoặc đã hủy');
+        }
+
+        // Reset order
+        sell.employeeMaintainId = 0;
+        sell.actionType = 0; // EMPLOYEE_FREE
+        sell.lastUpdateBy = employeeId;
+        sell.lastUpdateTime = new Date();
+
+        await this.sellRepository.save(sell);
+
+        // Also update all details
+        await this.sellDetailRepository.update(
+            { sellId: orderId },
+            { employeeMaintainId: 0 }
+        );
+
+        return { message: 'Đã hủy nhận đơn hàng', orderId };
+    }
+
+    /**
+     * Employee drops/cancels an order (hủy đơn hàng)
+     * - Sets status = CANCEL (3)
+     * - Stores cancel reason
+     */
+    async dropOrder(orderId: number, employeeId: number, statusCancel: number) {
+        const sell = await this.sellRepository.findOne({ where: { id: orderId } });
+
+        if (!sell) {
+            throw new NotFoundException(`Đơn hàng #${orderId} không tồn tại`);
+        }
+
+        // Check if employee is the one who picked
+        if (sell.employeeMaintainId !== employeeId) {
+            throw new Error('Bạn không thể hủy đơn hàng này vì không phải bạn nhận');
+        }
+
+        // Check if order can be cancelled
+        if (sell.status !== SellStatus.NEW) {
+            throw new Error('Đơn hàng này không thể hủy');
+        }
+
+        // Cancel order
+        sell.status = SellStatus.CANCEL;
+        sell.statusCancel = statusCancel;
+        sell.actionType = 3; // EMPLOYEE_DROP
+        sell.completeTime = new Date();
+        sell.completeTimeBigint = Math.floor(Date.now() / 1000);
+        sell.lastUpdateBy = employeeId;
+        sell.lastUpdateTime = new Date();
+
+        await this.sellRepository.save(sell);
+
+        return { message: 'Đã hủy đơn hàng', orderId };
+    }
+
+    /**
+     * Employee completes an order (hoàn thành đơn - thu tiền)
+     * - Sets status = PAID (2)
+     * - Updates details if provided
+     * - Calculates totals
+     */
+    async completeOrder(
+        orderId: number,
+        employeeId: number,
+        data?: {
+            details?: Array<{
+                materialsId: number;
+                materialsTypeId: number;
+                qty: number;
+                price: number;
+                seri?: number;
+            }>;
+            promotionAmount?: number;
+            ptttCode?: string;
+            gasRemain?: number;
+            gasRemainAmount?: number;
+        }
+    ) {
+        const sell = await this.sellRepository.findOne({
+            where: { id: orderId },
+            relations: ['details'],
+        });
+
+        if (!sell) {
+            throw new NotFoundException(`Đơn hàng #${orderId} không tồn tại`);
+        }
+
+        // Check if employee is the one who picked
+        if (sell.employeeMaintainId !== employeeId) {
+            throw new Error('Bạn không thể hoàn thành đơn hàng này vì không phải bạn nhận');
+        }
+
+        // Check if order can be completed
+        if (sell.status !== SellStatus.NEW) {
+            throw new Error('Đơn hàng này đã được xử lý');
+        }
+
+        // Update details if provided
+        if (data?.details && data.details.length > 0) {
+            // Delete old details and create new ones
+            await this.sellDetailRepository.delete({ sellId: orderId });
+
+            let total = 0;
+            const detailEntities = data.details.map(detail => {
+                const amount = detail.qty * detail.price;
+                total += amount;
+                return this.sellDetailRepository.create({
+                    sellId: orderId,
+                    customerId: sell.customerId,
+                    agentId: sell.agentId,
+                    saleId: sell.saleId || 0,
+                    employeeMaintainId: employeeId,
+                    uidLogin: sell.uidLogin,
+                    typeCustomer: sell.typeCustomer,
+                    orderType: sell.orderType,
+                    source: sell.source,
+                    materialsId: detail.materialsId,
+                    materialsTypeId: detail.materialsTypeId,
+                    qty: detail.qty,
+                    price: detail.price,
+                    priceRoot: detail.price,
+                    amount,
+                    seri: detail.seri || 0,
+                    createdDateOnly: sell.createdDateOnly,
+                    createdDateOnlyBigint: sell.createdDateOnlyBigint,
+                });
+            });
+
+            await this.sellDetailRepository.save(detailEntities);
+
+            sell.total = total;
+            sell.grandTotal = total - (sell.amountDiscount || 0) - (data.promotionAmount || sell.promotionAmount || 0);
+        }
+
+        // Update promotion amount if provided
+        if (data?.promotionAmount !== undefined) {
+            sell.promotionAmount = data.promotionAmount;
+            sell.grandTotal = (sell.total || 0) - (sell.amountDiscount || 0) - data.promotionAmount;
+        }
+
+        // Update PTTT code if provided
+        if (data?.ptttCode) {
+            sell.ptttCode = data.ptttCode;
+        }
+
+        // Update gas remain if provided
+        if (data?.gasRemain !== undefined) {
+            sell.gasRemain = data.gasRemain;
+        }
+        if (data?.gasRemainAmount !== undefined) {
+            sell.gasRemainAmount = data.gasRemainAmount;
+        }
+
+        // Complete order
+        sell.status = SellStatus.PAID;
+        sell.actionType = 5; // EMPLOYEE_COMPLETE
+        sell.completeTime = new Date();
+        sell.completeTimeBigint = Math.floor(Date.now() / 1000);
+        sell.lastUpdateBy = employeeId;
+        sell.lastUpdateTime = new Date();
+
+        await this.sellRepository.save(sell);
+
+        return {
+            message: 'Đã hoàn thành đơn hàng',
+            orderId,
+            grandTotal: sell.grandTotal,
+        };
+    }
+
+    /**
+     * Get cancel reasons for mobile app dropdown
+     */
+    getCancelReasons() {
+        return [
+            { value: 6, label: 'Không bù vỏ' },
+            { value: 7, label: 'KH gọi 2 bên' },
+            { value: 2, label: 'Giá cao' },
+            { value: 9, label: 'Giao xa' },
+            { value: 10, label: 'KH đi có việc' },
+            { value: 11, label: 'KH còn gas' },
+            { value: 14, label: 'KH nợ tiền' },
+            { value: 16, label: 'Gọi khách không nghe máy' },
+            { value: 20, label: 'Nhờ đại lý khác giao hỗ trợ' },
+        ];
+    }
 }
