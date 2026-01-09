@@ -764,6 +764,11 @@ export class SellsService {
 
             const [data, total] = await this.sellRepository.findAndCount({
                 where,
+                select: [
+                    'id', 'codeNo', 'status', 'orderType', 'grandTotal', 'createdDate',
+                    'deliveryTimer', 'isTimer', 'note', 'employeeMaintainId', 'agentId',
+                    'phone', 'address', 'customerId'
+                ],
                 relations: ['customer'], // Simplified - only load customer
                 order: { id: 'DESC' },
                 skip: (page - 1) * limit,
@@ -842,7 +847,7 @@ export class SellsService {
 
         // Update order
         sell.employeeMaintainId = employeeId;
-        sell.actionType = 1; // EMPLOYEE_NHAN_GIAO_HANG
+        // sell.actionType = 1; // EMPLOYEE_NHAN_GIAO_HANG - Removed due to missing column
         sell.lastUpdateBy = employeeId;
         sell.lastUpdateTime = new Date();
 
@@ -881,7 +886,8 @@ export class SellsService {
 
         // Reset order
         sell.employeeMaintainId = 0;
-        sell.actionType = 0; // EMPLOYEE_FREE
+        // sell.actionType = 0; // EMPLOYEE_FREE - Removed due to missing column
+        sell.lastUpdateBy = employeeId;
         sell.lastUpdateBy = employeeId;
         sell.lastUpdateTime = new Date();
 
@@ -921,7 +927,8 @@ export class SellsService {
         // Cancel order
         sell.status = SellStatus.CANCEL;
         sell.statusCancel = statusCancel;
-        sell.actionType = 3; // EMPLOYEE_DROP
+        // sell.actionType = 3; // EMPLOYEE_DROP - Removed due to missing column
+        sell.completeTime = new Date();
         sell.completeTime = new Date();
         sell.completeTimeBigint = Math.floor(Date.now() / 1000);
         sell.lastUpdateBy = employeeId;
@@ -1032,7 +1039,7 @@ export class SellsService {
 
         // Complete order
         sell.status = SellStatus.PAID;
-        sell.actionType = 5; // EMPLOYEE_COMPLETE
+        // sell.actionType = 5; // EMPLOYEE_COMPLETE - Removed due to missing column
         sell.completeTime = new Date();
         sell.completeTimeBigint = Math.floor(Date.now() / 1000);
         sell.lastUpdateBy = employeeId;

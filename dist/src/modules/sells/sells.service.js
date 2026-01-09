@@ -601,6 +601,11 @@ let SellsService = class SellsService {
             }
             const [data, total] = await this.sellRepository.findAndCount({
                 where,
+                select: [
+                    'id', 'codeNo', 'status', 'orderType', 'grandTotal', 'createdDate',
+                    'deliveryTimer', 'isTimer', 'note', 'employeeMaintainId', 'agentId',
+                    'phone', 'address', 'customerId'
+                ],
                 relations: ['customer'],
                 order: { id: 'DESC' },
                 skip: (page - 1) * limit,
@@ -660,7 +665,6 @@ let SellsService = class SellsService {
             throw new Error('Đơn hàng đã có nhân viên khác nhận');
         }
         sell.employeeMaintainId = employeeId;
-        sell.actionType = 1;
         sell.lastUpdateBy = employeeId;
         sell.lastUpdateTime = new Date();
         await this.sellRepository.save(sell);
@@ -679,7 +683,7 @@ let SellsService = class SellsService {
             throw new Error('Không thể hủy nhận đơn hàng đã hoàn thành hoặc đã hủy');
         }
         sell.employeeMaintainId = 0;
-        sell.actionType = 0;
+        sell.lastUpdateBy = employeeId;
         sell.lastUpdateBy = employeeId;
         sell.lastUpdateTime = new Date();
         await this.sellRepository.save(sell);
@@ -699,7 +703,7 @@ let SellsService = class SellsService {
         }
         sell.status = sell_entity_1.SellStatus.CANCEL;
         sell.statusCancel = statusCancel;
-        sell.actionType = 3;
+        sell.completeTime = new Date();
         sell.completeTime = new Date();
         sell.completeTimeBigint = Math.floor(Date.now() / 1000);
         sell.lastUpdateBy = employeeId;
@@ -766,7 +770,6 @@ let SellsService = class SellsService {
             sell.gasRemainAmount = data.gasRemainAmount;
         }
         sell.status = sell_entity_1.SellStatus.PAID;
-        sell.actionType = 5;
         sell.completeTime = new Date();
         sell.completeTimeBigint = Math.floor(Date.now() / 1000);
         sell.lastUpdateBy = employeeId;
