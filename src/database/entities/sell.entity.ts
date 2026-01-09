@@ -236,8 +236,8 @@ export class Sell {
     @Column({ type: 'bigint', name: 'date_paid', default: 0 })
     datePaid: number;
 
-    @Column({ type: 'tinyint', name: 'action_type', default: 0, comment: '0=free, 1=pick, 3=drop, 5=complete' })
-    actionType: number;
+    // @Column({ type: 'tinyint', name: 'action_type', default: 0, comment: '0=free, 1=pick, 3=drop, 5=complete' })
+    // actionType: number;
 
 
     // Relations

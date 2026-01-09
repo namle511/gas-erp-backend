@@ -148,7 +148,6 @@ export declare class SellsController {
             promotionExtraId: number;
             promotionExtraAmount: number;
             datePaid: number;
-            actionType: number;
             customer: import("../../database/entities").User;
             agent: import("../../database/entities").User;
             employeeMaintain: import("../../database/entities").User;
@@ -261,7 +260,6 @@ export declare class SellsController {
         promotionExtraId: number;
         promotionExtraAmount: number;
         datePaid: number;
-        actionType: number;
         customer: import("../../database/entities").User;
         agent: import("../../database/entities").User;
         employeeMaintain: import("../../database/entities").User;
@@ -337,7 +335,6 @@ export declare class SellsController {
         promotionExtraId: number;
         promotionExtraAmount: number;
         datePaid: number;
-        actionType: number;
         customer: import("../../database/entities").User;
         agent: import("../../database/entities").User;
         employeeMaintain: import("../../database/entities").User;
@@ -413,7 +410,6 @@ export declare class SellsController {
         promotionExtraId: number;
         promotionExtraAmount: number;
         datePaid: number;
-        actionType: number;
         customer: import("../../database/entities").User;
         agent: import("../../database/entities").User;
         employeeMaintain: import("../../database/entities").User;
@@ -489,7 +485,6 @@ export declare class SellsController {
         promotionExtraId: number;
         promotionExtraAmount: number;
         datePaid: number;
-        actionType: number;
         customer: import("../../database/entities").User;
         agent: import("../../database/entities").User;
         employeeMaintain: import("../../database/entities").User;

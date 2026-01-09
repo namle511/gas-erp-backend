@@ -120,7 +120,6 @@ let Sell = class Sell {
     promotionExtraId;
     promotionExtraAmount;
     datePaid;
-    actionType;
     customer;
     agent;
     employeeMaintain;
@@ -373,10 +372,6 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'bigint', name: 'date_paid', default: 0 }),
     __metadata("design:type", Number)
 ], Sell.prototype, "datePaid", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'tinyint', name: 'action_type', default: 0, comment: '0=free, 1=pick, 3=drop, 5=complete' }),
-    __metadata("design:type", Number)
-], Sell.prototype, "actionType", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => user_entity_1.User, { nullable: true }),
     (0, typeorm_1.JoinColumn)({ name: 'customer_id' }),
