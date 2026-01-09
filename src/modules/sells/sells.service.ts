@@ -741,43 +741,44 @@ export class SellsService {
     ) {
         const { page = 1, limit = 20, tab = 'new' } = query;
 
-        const where: any = {};
-
-        // Only filter by agentId if it's a valid agent (not admin with agentId=0)
-        if (agentId && agentId > 0) {
-            where.agentId = agentId;
-        }
-
-        switch (tab) {
-            case 'new':
-                // Đơn mới chưa ai nhận (actionType = 0 hoặc employeeMaintainId = 0)
-                where.status = SellStatus.NEW;
-                where.employeeMaintainId = 0;
-                break;
-            case 'my':
-                // Đơn đã nhận bởi employee này, chưa hoàn thành
-                where.status = SellStatus.NEW;
-                where.employeeMaintainId = employeeId;
-                break;
-            case 'completed':
-                // Đơn đã hoàn thành bởi employee này
-                where.status = SellStatus.PAID;
-                where.employeeMaintainId = employeeId;
-                break;
-            case 'cancelled':
-                // Đơn đã hủy
-                where.status = SellStatus.CANCEL;
-                break;
-        }
-
         try {
-            const [data, total] = await this.sellRepository.findAndCount({
-                where,
-                relations: ['customer', 'details', 'details.material'],
-                order: { id: 'DESC' },
-                skip: (page - 1) * limit,
-                take: limit,
-            });
+            let qb = this.sellRepository.createQueryBuilder('sell')
+                .leftJoinAndSelect('sell.customer', 'customer')
+                .leftJoinAndSelect('sell.details', 'details')
+                .leftJoinAndSelect('details.material', 'material');
+
+            // Only filter by agentId if it's a valid agent (not admin with agentId=0)
+            if (agentId && agentId > 0) {
+                qb = qb.andWhere('sell.agentId = :agentId', { agentId });
+            }
+
+            switch (tab) {
+                case 'new':
+                    // Đơn mới chưa ai nhận (employeeMaintainId = 0 hoặc NULL)
+                    qb = qb.andWhere('sell.status = :status', { status: SellStatus.NEW });
+                    qb = qb.andWhere('(sell.employeeMaintainId = 0 OR sell.employeeMaintainId IS NULL)');
+                    break;
+                case 'my':
+                    // Đơn đã nhận bởi employee này, chưa hoàn thành
+                    qb = qb.andWhere('sell.status = :status', { status: SellStatus.NEW });
+                    qb = qb.andWhere('sell.employeeMaintainId = :employeeId', { employeeId });
+                    break;
+                case 'completed':
+                    // Đơn đã hoàn thành bởi employee này
+                    qb = qb.andWhere('sell.status = :status', { status: SellStatus.PAID });
+                    qb = qb.andWhere('sell.employeeMaintainId = :employeeId', { employeeId });
+                    break;
+                case 'cancelled':
+                    // Đơn đã hủy
+                    qb = qb.andWhere('sell.status = :status', { status: SellStatus.CANCEL });
+                    break;
+            }
+
+            qb = qb.orderBy('sell.id', 'DESC')
+                .skip((page - 1) * limit)
+                .take(limit);
+
+            const [data, total] = await qb.getManyAndCount();
 
             const statusLabels = this.getStatusLabels();
             const orderTypeLabels = this.getOrderTypeLabels();

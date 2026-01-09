@@ -586,35 +586,35 @@ let SellsService = class SellsService {
     }
     async getMobileOrders(employeeId, agentId, query) {
         const { page = 1, limit = 20, tab = 'new' } = query;
-        const where = {};
-        if (agentId && agentId > 0) {
-            where.agentId = agentId;
-        }
-        switch (tab) {
-            case 'new':
-                where.status = sell_entity_1.SellStatus.NEW;
-                where.employeeMaintainId = 0;
-                break;
-            case 'my':
-                where.status = sell_entity_1.SellStatus.NEW;
-                where.employeeMaintainId = employeeId;
-                break;
-            case 'completed':
-                where.status = sell_entity_1.SellStatus.PAID;
-                where.employeeMaintainId = employeeId;
-                break;
-            case 'cancelled':
-                where.status = sell_entity_1.SellStatus.CANCEL;
-                break;
-        }
         try {
-            const [data, total] = await this.sellRepository.findAndCount({
-                where,
-                relations: ['customer', 'details', 'details.material'],
-                order: { id: 'DESC' },
-                skip: (page - 1) * limit,
-                take: limit,
-            });
+            let qb = this.sellRepository.createQueryBuilder('sell')
+                .leftJoinAndSelect('sell.customer', 'customer')
+                .leftJoinAndSelect('sell.details', 'details')
+                .leftJoinAndSelect('details.material', 'material');
+            if (agentId && agentId > 0) {
+                qb = qb.andWhere('sell.agentId = :agentId', { agentId });
+            }
+            switch (tab) {
+                case 'new':
+                    qb = qb.andWhere('sell.status = :status', { status: sell_entity_1.SellStatus.NEW });
+                    qb = qb.andWhere('(sell.employeeMaintainId = 0 OR sell.employeeMaintainId IS NULL)');
+                    break;
+                case 'my':
+                    qb = qb.andWhere('sell.status = :status', { status: sell_entity_1.SellStatus.NEW });
+                    qb = qb.andWhere('sell.employeeMaintainId = :employeeId', { employeeId });
+                    break;
+                case 'completed':
+                    qb = qb.andWhere('sell.status = :status', { status: sell_entity_1.SellStatus.PAID });
+                    qb = qb.andWhere('sell.employeeMaintainId = :employeeId', { employeeId });
+                    break;
+                case 'cancelled':
+                    qb = qb.andWhere('sell.status = :status', { status: sell_entity_1.SellStatus.CANCEL });
+                    break;
+            }
+            qb = qb.orderBy('sell.id', 'DESC')
+                .skip((page - 1) * limit)
+                .take(limit);
+            const [data, total] = await qb.getManyAndCount();
             const statusLabels = this.getStatusLabels();
             const orderTypeLabels = this.getOrderTypeLabels();
             const mappedData = data.map(sell => ({
