@@ -741,7 +741,12 @@ export class SellsService {
     ) {
         const { page = 1, limit = 20, tab = 'new' } = query;
 
-        const where: any = { agentId };
+        const where: any = {};
+
+        // Only filter by agentId if it's a valid agent (not admin with agentId=0)
+        if (agentId && agentId > 0) {
+            where.agentId = agentId;
+        }
 
         switch (tab) {
             case 'new':
@@ -765,61 +770,66 @@ export class SellsService {
                 break;
         }
 
-        const [data, total] = await this.sellRepository.findAndCount({
-            where,
-            relations: ['customer', 'details', 'details.material'],
-            order: { id: 'DESC' },
-            skip: (page - 1) * limit,
-            take: limit,
-        });
+        try {
+            const [data, total] = await this.sellRepository.findAndCount({
+                where,
+                relations: ['customer', 'details', 'details.material'],
+                order: { id: 'DESC' },
+                skip: (page - 1) * limit,
+                take: limit,
+            });
 
-        const statusLabels = this.getStatusLabels();
-        const orderTypeLabels = this.getOrderTypeLabels();
+            const statusLabels = this.getStatusLabels();
+            const orderTypeLabels = this.getOrderTypeLabels();
 
-        const mappedData = data.map(sell => ({
-            id: sell.id,
-            codeNo: sell.codeNo,
-            customerName: sell.customer
-                ? `${sell.customer.lastName || ''} ${sell.customer.firstName || ''}`.trim()
-                : '',
-            customerPhone: sell.phone?.toString() || sell.customer?.phone || '',
-            customerAddress: sell.address || sell.customer?.address || '',
-            status: sell.status,
-            statusLabel: statusLabels[sell.status] || '',
-            orderType: sell.orderType,
-            orderTypeLabel: orderTypeLabels[sell.orderType] || '',
-            grandTotal: sell.grandTotal,
-            createdDate: sell.createdDate,
-            deliveryTimer: sell.deliveryTimer,
-            isTimer: sell.isTimer,
-            note: sell.note,
-            materialsSummary: sell.details && sell.details.length > 0
-                ? sell.details.map(d => {
-                    const qty = Number(d.qty);
-                    const formattedQty = Number.isInteger(qty) ? qty.toString() : qty.toFixed(2);
-                    return `${d.material?.name || 'VT'} x${formattedQty}`;
-                }).join(', ')
-                : '',
-            details: sell.details?.map(d => ({
-                id: d.id,
-                materialId: d.materialsId,
-                materialName: d.material?.name || '',
-                materialTypeId: d.materialsTypeId,
-                qty: d.qty,
-                price: d.price,
-                amount: d.amount,
-            })),
-        }));
+            const mappedData = data.map(sell => ({
+                id: sell.id,
+                codeNo: sell.codeNo,
+                customerName: sell.customer
+                    ? `${sell.customer.lastName || ''} ${sell.customer.firstName || ''}`.trim()
+                    : '',
+                customerPhone: sell.phone?.toString() || sell.customer?.phone || '',
+                customerAddress: sell.address || sell.customer?.address || '',
+                status: sell.status,
+                statusLabel: statusLabels[sell.status] || '',
+                orderType: sell.orderType,
+                orderTypeLabel: orderTypeLabels[sell.orderType] || '',
+                grandTotal: sell.grandTotal,
+                createdDate: sell.createdDate,
+                deliveryTimer: sell.deliveryTimer,
+                isTimer: sell.isTimer,
+                note: sell.note,
+                materialsSummary: sell.details && sell.details.length > 0
+                    ? sell.details.map(d => {
+                        const qty = Number(d.qty);
+                        const formattedQty = Number.isInteger(qty) ? qty.toString() : qty.toFixed(2);
+                        return `${d.material?.name || 'VT'} x${formattedQty}`;
+                    }).join(', ')
+                    : '',
+                details: sell.details?.map(d => ({
+                    id: d.id,
+                    materialId: d.materialsId,
+                    materialName: d.material?.name || '',
+                    materialTypeId: d.materialsTypeId,
+                    qty: d.qty,
+                    price: d.price,
+                    amount: d.amount,
+                })),
+            }));
 
-        return {
-            data: mappedData,
-            meta: {
-                total,
-                page,
-                limit,
-                totalPages: Math.ceil(total / limit),
-            },
-        };
+            return {
+                data: mappedData,
+                meta: {
+                    total,
+                    page,
+                    limit,
+                    totalPages: Math.ceil(total / limit),
+                },
+            };
+        } catch (error) {
+            console.error('Error in getMobileOrders:', error);
+            throw error;
+        }
     }
 
     /**
