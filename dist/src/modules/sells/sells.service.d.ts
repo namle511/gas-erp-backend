@@ -504,7 +504,13 @@ export declare class SellsService {
             isTimer: number;
             note: string;
             materialsSummary: string;
-            details: never[];
+            details: {
+                materialsId: number;
+                materialsTypeId: number;
+                qty: number;
+                price: number;
+                materialName: string;
+            }[];
         }[];
         meta: {
             total: number;

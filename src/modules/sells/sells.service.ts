@@ -804,7 +804,7 @@ export class SellsService {
                     'deliveryTimer', 'isTimer', 'note', 'employeeMaintainId', 'agentId',
                     'phone', 'address', 'customerId'
                 ],
-                relations: ['customer'], // Simplified - only load customer
+                relations: ['customer', 'details', 'details.material'], // Include details for summary
                 order: { id: 'DESC' },
                 skip: (page - 1) * limit,
                 take: limit,
@@ -840,8 +840,20 @@ export class SellsService {
                 deliveryTimer: sell.deliveryTimer,
                 isTimer: sell.isTimer,
                 note: sell.note,
-                materialsSummary: '', // Simplified - skip materials for performance
-                details: [], // Simplified - load details on detail view only
+                materialsSummary: sell.details
+                    ? sell.details.map(d => {
+                        const qty = Number(d.qty);
+                        const formattedQty = Number.isInteger(qty) ? qty.toString() : qty.toFixed(2);
+                        return `${d.material?.name || 'VT'} x${formattedQty}`;
+                    }).join(', ')
+                    : '',
+                details: sell.details ? sell.details.map(d => ({
+                    materialsId: d.materialsId,
+                    materialsTypeId: d.materialsTypeId,
+                    qty: Number(d.qty),
+                    price: d.price,
+                    materialName: d.material?.name || '',
+                })) : [],
             }));
 
             return {
