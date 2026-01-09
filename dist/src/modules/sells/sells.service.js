@@ -189,76 +189,82 @@ let SellsService = class SellsService {
         };
     }
     async create(createSellDto, userId) {
-        const now = new Date();
-        const dateOnly = createSellDto.createdDateOnly
-            ? new Date(createSellDto.createdDateOnly)
-            : new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const codeNo = await this.generateCodeNo();
-        let total = 0;
-        let grandTotal = 0;
-        let amountDiscount = createSellDto.amountDiscount || 0;
-        let promotionAmount = createSellDto.promotionAmount || 0;
-        if (createSellDto.details && createSellDto.details.length > 0) {
-            for (const detail of createSellDto.details) {
-                const amount = detail.amount || (detail.qty * detail.price);
-                total += amount;
+        try {
+            const now = new Date();
+            const dateOnly = createSellDto.createdDateOnly
+                ? new Date(createSellDto.createdDateOnly)
+                : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const codeNo = await this.generateCodeNo();
+            let total = 0;
+            let grandTotal = 0;
+            let amountDiscount = createSellDto.amountDiscount || 0;
+            let promotionAmount = createSellDto.promotionAmount || 0;
+            if (createSellDto.details && createSellDto.details.length > 0) {
+                for (const detail of createSellDto.details) {
+                    const amount = detail.amount || (detail.qty * detail.price);
+                    total += amount;
+                }
             }
-        }
-        grandTotal = total - amountDiscount - promotionAmount;
-        const sell = this.sellRepository.create({
-            codeNo,
-            customerId: createSellDto.customerId,
-            agentId: createSellDto.agentId,
-            saleId: createSellDto.saleId,
-            employeeMaintainId: createSellDto.employeeMaintainId,
-            typeCustomer: createSellDto.typeCustomer || 1,
-            orderType: createSellDto.orderType || sell_entity_1.SellOrderType.NORMAL,
-            source: createSellDto.source || sell_entity_1.SellSource.WEB,
-            paymentType: createSellDto.paymentType || sell_entity_1.SellPaymentType.CASH,
-            phone: parseInt(createSellDto.phone?.replace(/\D/g, '') || '0'),
-            address: createSellDto.address,
-            note: createSellDto.note,
-            provinceId: createSellDto.provinceId,
-            amountDiscount,
-            promotionAmount,
-            total,
-            grandTotal,
-            status: sell_entity_1.SellStatus.NEW,
-            uidLogin: userId,
-            createdDateOnly: dateOnly,
-            createdDate: now,
-            deliveryTimer: createSellDto.deliveryTimer ? new Date(createSellDto.deliveryTimer) : null,
-            isTimer: createSellDto.deliveryTimer ? 1 : 0,
-        });
-        const savedSell = await this.sellRepository.save(sell);
-        if (createSellDto.details && createSellDto.details.length > 0) {
-            const detailEntities = createSellDto.details.map(detail => {
-                const amount = detail.amount || (detail.qty * detail.price);
-                return this.sellDetailRepository.create({
-                    sellId: savedSell.id,
-                    customerId: createSellDto.customerId,
-                    agentId: createSellDto.agentId,
-                    saleId: createSellDto.saleId || 0,
-                    employeeMaintainId: createSellDto.employeeMaintainId || 0,
-                    uidLogin: userId,
-                    typeCustomer: createSellDto.typeCustomer || 1,
-                    orderType: createSellDto.orderType || sell_entity_1.SellOrderType.NORMAL,
-                    source: createSellDto.source || sell_entity_1.SellSource.WEB,
-                    materialsId: detail.materialsId,
-                    materialsParentId: detail.materialsParentId,
-                    materialsTypeId: detail.materialsTypeId || 0,
-                    qty: detail.qty,
-                    price: detail.price,
-                    priceRoot: detail.price,
-                    amount,
-                    amountDiscount: detail.amountDiscount || 0,
-                    promotionAmount: detail.promotionAmount || 0,
-                    createdDateOnly: dateOnly,
-                });
+            grandTotal = total - amountDiscount - promotionAmount;
+            const sell = this.sellRepository.create({
+                codeNo,
+                customerId: createSellDto.customerId,
+                agentId: createSellDto.agentId,
+                saleId: createSellDto.saleId,
+                employeeMaintainId: createSellDto.employeeMaintainId,
+                typeCustomer: createSellDto.typeCustomer || 1,
+                orderType: createSellDto.orderType || sell_entity_1.SellOrderType.NORMAL,
+                source: createSellDto.source || sell_entity_1.SellSource.WEB,
+                paymentType: createSellDto.paymentType || sell_entity_1.SellPaymentType.CASH,
+                phone: parseInt(createSellDto.phone?.replace(/\D/g, '') || '0'),
+                address: createSellDto.address,
+                note: createSellDto.note,
+                provinceId: createSellDto.provinceId,
+                amountDiscount,
+                promotionAmount,
+                total,
+                grandTotal,
+                status: sell_entity_1.SellStatus.NEW,
+                uidLogin: userId,
+                createdDateOnly: dateOnly,
+                createdDate: now,
+                deliveryTimer: createSellDto.deliveryTimer ? new Date(createSellDto.deliveryTimer) : null,
+                isTimer: createSellDto.deliveryTimer ? 1 : 0,
             });
-            await this.sellDetailRepository.save(detailEntities);
+            const savedSell = await this.sellRepository.save(sell);
+            if (createSellDto.details && createSellDto.details.length > 0) {
+                const detailEntities = createSellDto.details.map(detail => {
+                    const amount = detail.amount || (detail.qty * detail.price);
+                    return this.sellDetailRepository.create({
+                        sellId: savedSell.id,
+                        customerId: createSellDto.customerId,
+                        agentId: createSellDto.agentId,
+                        saleId: createSellDto.saleId || 0,
+                        employeeMaintainId: createSellDto.employeeMaintainId || 0,
+                        uidLogin: userId,
+                        typeCustomer: createSellDto.typeCustomer || 1,
+                        orderType: createSellDto.orderType || sell_entity_1.SellOrderType.NORMAL,
+                        source: createSellDto.source || sell_entity_1.SellSource.WEB,
+                        materialsId: detail.materialsId,
+                        materialsParentId: detail.materialsParentId,
+                        materialsTypeId: detail.materialsTypeId || 0,
+                        qty: detail.qty,
+                        price: detail.price,
+                        priceRoot: detail.price,
+                        amount,
+                        amountDiscount: detail.amountDiscount || 0,
+                        promotionAmount: detail.promotionAmount || 0,
+                        createdDateOnly: dateOnly,
+                    });
+                });
+                await this.sellDetailRepository.save(detailEntities);
+            }
+            return this.findOne(savedSell.id);
         }
-        return this.findOne(savedSell.id);
+        catch (error) {
+            console.error('Error creating order:', error);
+            throw new common_1.InternalServerErrorException({ message: error.message, sqlMessage: error.sqlMessage, sql: error.sql });
+        }
     }
     async update(id, updateSellDto, userId) {
         const sell = await this.sellRepository.findOne({ where: { id } });
