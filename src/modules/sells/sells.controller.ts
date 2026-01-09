@@ -79,6 +79,31 @@ export class SellsController {
         });
     }
 
+    // ==================== MOBILE ENDPOINTS (MUST be before :id routes) ====================
+
+    @Get('mobile/orders')
+    getMobileOrders(
+        @Query('page') page?: string,
+        @Query('limit') limit?: string,
+        @Query('tab') tab?: 'new' | 'my' | 'completed' | 'cancelled',
+        @Request() req?: any,
+    ) {
+        const employeeId = req.user.userId;
+        const agentId = req.user.agentId || req.user.areaCodeId || 0;
+        return this.sellsService.getMobileOrders(employeeId, agentId, {
+            page: page ? parseInt(page, 10) : 1,
+            limit: limit ? parseInt(limit, 10) : 20,
+            tab: tab || 'new',
+        });
+    }
+
+    @Get('mobile/cancel-reasons')
+    getCancelReasons() {
+        return this.sellsService.getCancelReasons();
+    }
+
+    // ==================== SINGLE ORDER ROUTES ====================
+
     @Get(':id')
     findOne(@Param('id', ParseIntPipe) id: number) {
         return this.sellsService.findOne(id);
@@ -111,24 +136,6 @@ export class SellsController {
     @Delete(':id')
     remove(@Param('id', ParseIntPipe) id: number) {
         return this.sellsService.remove(id);
-    }
-
-    // ==================== MOBILE ENDPOINTS ====================
-
-    @Get('mobile/orders')
-    getMobileOrders(
-        @Query('page') page?: string,
-        @Query('limit') limit?: string,
-        @Query('tab') tab?: 'new' | 'my' | 'completed' | 'cancelled',
-        @Request() req?: any,
-    ) {
-        const employeeId = req.user.userId;
-        const agentId = req.user.agentId || req.user.areaCodeId || 0;
-        return this.sellsService.getMobileOrders(employeeId, agentId, {
-            page: page ? parseInt(page, 10) : 1,
-            limit: limit ? parseInt(limit, 10) : 20,
-            tab: tab || 'new',
-        });
     }
 
     @Post(':id/pick')
@@ -164,10 +171,4 @@ export class SellsController {
     ) {
         return this.sellsService.completeOrder(id, req.user.userId, body);
     }
-
-    @Get('mobile/cancel-reasons')
-    getCancelReasons() {
-        return this.sellsService.getCancelReasons();
-    }
 }
-

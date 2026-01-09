@@ -163,6 +163,44 @@ export declare class SellsController {
             totalPages: number;
         };
     }>;
+    getMobileOrders(page?: string, limit?: string, tab?: 'new' | 'my' | 'completed' | 'cancelled', req?: any): Promise<{
+        data: {
+            id: number;
+            codeNo: string;
+            customerName: string;
+            customerPhone: string;
+            customerAddress: string;
+            status: number;
+            statusLabel: string;
+            orderType: number;
+            orderTypeLabel: string;
+            grandTotal: number;
+            createdDate: Date;
+            deliveryTimer: Date | null;
+            isTimer: number;
+            note: string;
+            materialsSummary: string;
+            details: {
+                id: number;
+                materialId: number;
+                materialName: string;
+                materialTypeId: number;
+                qty: number;
+                price: number;
+                amount: number;
+            }[];
+        }[];
+        meta: {
+            total: number;
+            page: number;
+            limit: number;
+            totalPages: number;
+        };
+    }>;
+    getCancelReasons(): {
+        value: number;
+        label: string;
+    }[];
     findOne(id: number): Promise<{
         statusLabel: string;
         orderTypeLabel: string;
@@ -470,40 +508,6 @@ export declare class SellsController {
     remove(id: number): Promise<{
         message: string;
     }>;
-    getMobileOrders(page?: string, limit?: string, tab?: 'new' | 'my' | 'completed' | 'cancelled', req?: any): Promise<{
-        data: {
-            id: number;
-            codeNo: string;
-            customerName: string;
-            customerPhone: string;
-            customerAddress: string;
-            status: number;
-            statusLabel: string;
-            orderType: number;
-            orderTypeLabel: string;
-            grandTotal: number;
-            createdDate: Date;
-            deliveryTimer: Date | null;
-            isTimer: number;
-            note: string;
-            materialsSummary: string;
-            details: {
-                id: number;
-                materialId: number;
-                materialName: string;
-                materialTypeId: number;
-                qty: number;
-                price: number;
-                amount: number;
-            }[];
-        }[];
-        meta: {
-            total: number;
-            page: number;
-            limit: number;
-            totalPages: number;
-        };
-    }>;
     pickOrder(id: number, req: any): Promise<{
         message: string;
         orderId: number;
@@ -521,8 +525,4 @@ export declare class SellsController {
         orderId: number;
         grandTotal: number;
     }>;
-    getCancelReasons(): {
-        value: number;
-        label: string;
-    }[];
 }
